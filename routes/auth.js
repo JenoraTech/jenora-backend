@@ -1,38 +1,51 @@
-// routes/auth.js
 const express = require("express");
-const jwt = require("jsonwebtoken");
+const router = express.Router();
 const supabase = require("../config/supabase");
 
-const router = express.Router();
-
-// LOGIN
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const { data: user, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("email", email)
-    .eq("password", password)
-    .single();
+  // 1. Ask Supabase to verify credentials
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-  if (error || !user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  if (error) {
+    return res.status(401).json({ error: error.message });
   }
 
-  const token = jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-      clearance: user.clearance,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" },
-  );
-
+  // 2. Supabase returns a 'session' containing the JWT (access_token)
   res.json({
-    token,
-    user,
+    token: data.session.access_token,
+    user: data.user,
+  });
+});
+
+// --- NEW: Route for Admin to provision new users ---
+router.post("/register", async (req, res) => {
+  const { name, email, password, role, clearance } = req.body;
+
+  // Use Supabase Admin API to create the user without requiring them to verify email immediately
+  // Note: This requires the Service Role Key in your Supabase client config
+  const { data, error } = await supabase.auth.admin.createUser({
+    email: email,
+    password: password,
+    email_confirm: true, // Automatically confirms the email so staff can log in immediately
+    user_metadata: {
+      full_name: name,
+      role: role || "Staff",
+      clearance: clearance || 2,
+    },
+  });
+
+  if (error) {
+    return res.status(400).json({ error: error.message });
+  }
+
+  res.status(201).json({
+    message: "User provisioned successfully",
+    user: data.user,
   });
 });
 
