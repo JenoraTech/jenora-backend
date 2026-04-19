@@ -13,6 +13,15 @@ app.use("/api/auth", require("./routes/auth"));
 // --- KEPT EXISTING QUOTATIONS ROUTE ---
 app.use("/api/quotations", require("./routes/quotations"));
 
+// --- NEW: HEALTH CHECK ENDPOINTS FOR FLUTTER SYNC ---
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Jenora API is healthy" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Jenora API is healthy" });
+});
+
 app.get("/", (req, res) => {
   res.send("Jenora API is running 🚀");
 });
