@@ -11,6 +11,11 @@ router.post("/sync", auth, async (req, res) => {
   try {
     const { quotations } = req.body;
 
+    // Safety check for empty or missing quotations array
+    if (!quotations || !Array.isArray(quotations)) {
+      return res.status(400).json({ error: "No quotations provided for sync" });
+    }
+
     for (let q of quotations) {
       // Check for existing record using Supabase
       const { data: existing, error: fetchError } = await supabase
@@ -73,8 +78,8 @@ router.get("/", auth, async (req, res) => {
 
     let query = supabase.from("quotations").select("*");
 
-    // Apply filter if last_sync is provided
-    if (last_sync) {
+    // Apply filter if last_sync is provided and valid
+    if (last_sync && last_sync !== "null" && last_sync !== "undefined") {
       query = query.gt("updated_at", last_sync);
     }
 

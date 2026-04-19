@@ -19,6 +19,7 @@ app.use("/api/inventory", require("./routes/inventory"));
 app.use("/api/invoices", require("./routes/invoices"));
 
 // --- HEALTH CHECK ENDPOINTS FOR FLUTTER SYNC ---
+// These are used by _hasRealInternet() in your SyncService
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Jenora API is healthy" });
 });

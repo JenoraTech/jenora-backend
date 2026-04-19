@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
+// Changed to supabase config
 const supabase = require("../config/supabase");
+// Added auth middleware for protection
+const auth = require("../middleware/authMiddleware");
 
 // GET all invoices from Supabase
-router.get("/", async (req, res) => {
+// Added 'auth' middleware here
+router.get("/", auth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("invoices")
@@ -18,18 +22,25 @@ router.get("/", async (req, res) => {
 });
 
 // POST/UPSERT invoice data from Flutter
-router.post("/", async (req, res) => {
+// Updated path to /sync to match SyncService and added auth
+router.post("/sync", auth, async (req, res) => {
   try {
-    const invoiceData = req.body;
+    const { invoices } = req.body;
+
+    // Safety check for empty or missing invoices array
+    if (!invoices || !Array.isArray(invoices)) {
+      return res.status(400).json({ error: "No invoices provided for sync" });
+    }
 
     // Using upsert so it updates existing invoices or creates new ones
     const { data, error } = await supabase
       .from("invoices")
-      .upsert(invoiceData, { onConflict: "id" });
+      .upsert(invoices, { onConflict: "id" });
 
     if (error) throw error;
     res.status(201).json({ message: "Invoice synced successfully", data });
   } catch (err) {
+    console.error("Invoice Sync Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
