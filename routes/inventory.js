@@ -1,33 +1,35 @@
-require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
+const router = express.Router();
+const supabase = require("../config/supabase");
 
-const app = express();
+// GET all inventory items
+router.get("/", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("*")
+      .order("category", { ascending: true });
 
-app.use(cors());
-app.use(express.json());
-
-// routes
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/quotations", require("./routes/quotations"));
-
-// --- NEW: INVENTORY ROUTE ---
-app.use("/api/inventory", require("./routes/inventory"));
-
-// --- HEALTH CHECK ENDPOINTS FOR FLUTTER SYNC ---
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Jenora API is healthy" });
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Jenora API is healthy" });
+// POST new inventory item
+router.post("/", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("inventory")
+      .upsert(req.body, { onConflict: "id" });
+
+    if (error) throw error;
+    res.status(201).json({ message: "Inventory updated", data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/", (req, res) => {
-  res.send("Jenora API is running 🚀");
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
-});
+// 🔥 CRITICAL: This must be at the very bottom!
+module.exports = router;

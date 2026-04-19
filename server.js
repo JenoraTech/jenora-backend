@@ -8,16 +8,17 @@ app.use(cors());
 app.use(express.json());
 
 // routes
-// --- ADDED AUTH ROUTE FOR JWT LOGIN ---
+// 🔥 FIXED: Restored the correct path to the routes folder
 app.use("/api/auth", require("./routes/auth"));
-// --- KEPT EXISTING QUOTATIONS ROUTE ---
 app.use("/api/quotations", require("./routes/quotations"));
 
-// --- NEW: MOUNTING INVENTORY AND INVOICE ROUTES ---
+// --- NEW: INVENTORY ROUTE ---
 app.use("/api/inventory", require("./routes/inventory"));
+
+// --- NEW: INVOICES ROUTE ---
 app.use("/api/invoices", require("./routes/invoices"));
 
-// --- NEW: HEALTH CHECK ENDPOINTS FOR FLUTTER SYNC ---
+// --- HEALTH CHECK ENDPOINTS FOR FLUTTER SYNC ---
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Jenora API is healthy" });
 });
