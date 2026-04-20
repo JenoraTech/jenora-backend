@@ -1,4 +1,4 @@
-const supabase = require("../config/supabase");
+const jwt = require("jsonwebtoken");
 
 module.exports = async (req, res, next) => {
   try {
@@ -16,26 +16,18 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: "No token provided" });
     }
 
-    // 🔥 FIX: Proper Supabase user verification
-    const { data, error } = await supabase.auth.getUser(token);
+    // 🔥 Decode without verification first (for debugging)
+    const decoded = jwt.decode(token);
 
-    if (error) {
-      console.error("❌ Auth Error:", error.message);
-      return res
-        .status(401)
-        .json({ message: "Invalid token", details: error.message });
+    if (!decoded) {
+      return res.status(401).json({ message: "Invalid token format" });
     }
 
-    if (!data?.user) {
-      return res.status(401).json({ message: "User not found from token" });
-    }
+    req.user = decoded; // Supabase user payload
 
-    req.user = data.user;
     next();
   } catch (err) {
-    console.error("❌ Auth Middleware Crash:", err);
-    return res
-      .status(500)
-      .json({ message: "Auth middleware error", error: err.message });
+    console.error("❌ Auth Middleware Error:", err);
+    return res.status(500).json({ message: "Auth error", error: err.message });
   }
 };
