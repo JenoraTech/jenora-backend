@@ -1,23 +1,26 @@
 const express = require("express");
 const router = express.Router();
-// Changed to supabase config
 const supabase = require("../config/supabase");
-// Added auth middleware for protection
 const auth = require("../middleware/authMiddleware");
 
+// 🔥 ADDED: Debug helper (does NOT affect logic)
+const debugAuth = (req) => {
+  const header = req.headers.authorization;
+  console.log("🔐 Auth Header:", header);
+};
+
 // 🔽 PUSH (Upload from Flutter → Server)
-// Added 'auth' middleware here
 router.post("/sync", auth, async (req, res) => {
   try {
+    debugAuth(req); // 🔥 ADDED
+
     const { quotations } = req.body;
 
-    // Safety check for empty or missing quotations array
     if (!quotations || !Array.isArray(quotations)) {
       return res.status(400).json({ error: "No quotations provided for sync" });
     }
 
     for (let q of quotations) {
-      // Check for existing record using Supabase
       const { data: existing, error: fetchError } = await supabase
         .from("quotations")
         .select("*")
@@ -27,7 +30,6 @@ router.post("/sync", auth, async (req, res) => {
       if (fetchError) throw fetchError;
 
       if (!existing) {
-        // INSERT using Supabase
         const { error: insertError } = await supabase
           .from("quotations")
           .insert({
@@ -43,7 +45,6 @@ router.post("/sync", auth, async (req, res) => {
 
         if (insertError) throw insertError;
       } else {
-        // UPDATE if newer (Conflict Resolution Logic preserved)
         const serverDate = new Date(existing.updated_at);
         const clientDate = new Date(q.updated_at);
 
@@ -65,20 +66,20 @@ router.post("/sync", auth, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Sync Error:", err);
     res.status(500).json({ error: "Sync failed", details: err.message });
   }
 });
 
 // 🔽 PULL (Download from Server → Flutter)
-// Added 'auth' middleware here
 router.get("/", auth, async (req, res) => {
   try {
+    debugAuth(req); // 🔥 ADDED
+
     const { last_sync } = req.query;
 
     let query = supabase.from("quotations").select("*");
 
-    // Apply filter if last_sync is provided and valid
     if (last_sync && last_sync !== "null" && last_sync !== "undefined") {
       query = query.gt("updated_at", last_sync);
     }
@@ -89,7 +90,7 @@ router.get("/", auth, async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Fetch Error:", err);
     res.status(500).json({ error: "Fetch failed", details: err.message });
   }
 });
